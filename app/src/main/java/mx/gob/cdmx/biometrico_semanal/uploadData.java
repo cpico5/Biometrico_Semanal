@@ -1,20 +1,9 @@
 package mx.gob.cdmx.biometrico_semanal;
 
-import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Environment;
-import android.provider.Settings;
-import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.widget.Toast;
-
-import androidx.core.app.ActivityCompat;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -24,6 +13,8 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+
+import mx.gob.cdmx.biometrico_semanal.Nombre;
 
 public class uploadData {
 
@@ -37,14 +28,17 @@ public class uploadData {
 
 	static Calendar c = Calendar.getInstance();
 
-	SimpleDateFormat df1 = new SimpleDateFormat("yyyMMdd");
-	String formattedDate1 = df1.format(c.getTime());
+	static SimpleDateFormat df1 = new SimpleDateFormat("yyyMMdd");
+	static String formattedDate1 = df1.format(c.getTime());
 
-	SimpleDateFormat df2 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss a");
-	String formattedDate2 = df2.format(c.getTime());
+	static SimpleDateFormat df2 = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss a");
+	static String formattedDate2 = df2.format(c.getTime());
 
 	static SimpleDateFormat df3 = new SimpleDateFormat("yyy-MM-dd");
 	static String formattedDate3 = df3.format(c.getTime());
+
+	static SimpleDateFormat df4 = new SimpleDateFormat("yyyMMdd");
+	static String formattedDateFecha = df4.format(c.getTime());
 
 	static Context ctx;
 
@@ -250,7 +244,7 @@ public class uploadData {
 			File sdCard;
 			sdCard = Environment.getExternalStorageDirectory();
 //						final String pathAudios = sdCard.getAbsolutePath() + "/" + nombreEncuesta+"-Audio"+date2;
-			final String pathAudios = sdCard.getAbsolutePath() + "/" + nombreEncuesta +"-Audio" + formattedDate3 + "/";
+			final String pathAudios = sdCard.getAbsolutePath() + "/" + nombreEncuesta +"-Audio" + formattedDateFecha + "/";
 
 			String sDirectorio = pathAudios;
 			final File f = new File(sDirectorio);
@@ -353,7 +347,7 @@ public class uploadData {
 		File sdCard;
 		sdCard = Environment.getExternalStorageDirectory();
 		//final String pathFotos = sdCard.getAbsolutePath() + "/"+ nombreEncuesta+"-Audio"+fech;
-		final String pathAudios = sdCard.getAbsolutePath() + nombreEncuesta +"-Audio" + formattedDate3 + "/";
+		final String pathAudios = sdCard.getAbsolutePath() + nombreEncuesta +"-Audio" + formattedDateFecha + "/";
 
 		String fileName = sourceFileUri;
 
