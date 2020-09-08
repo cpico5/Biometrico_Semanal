@@ -32,6 +32,10 @@ import androidx.biometric.BiometricPrompt;
 import androidx.core.app.ActivityCompat;
 import androidx.fragment.app.FragmentActivity;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.iid.FirebaseInstanceId;
+import com.google.firebase.iid.InstanceIdResult;
 import com.google.gson.Gson;
 import com.loopj.android.http.AsyncHttpClient;
 import com.loopj.android.http.AsyncHttpResponseHandler;
@@ -160,6 +164,9 @@ public class Bienvenida extends AppCompatActivity {
 
             new uploadData.UpdateBases().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, sacaImei());
             new uploadData.UpdateAudios().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            OtenerToken();
+            NotificacionIDTokenService notificacionIDTokenService = new NotificacionIDTokenService();
+            notificacionIDTokenService.onTokenRefresh();
         }
 
 
@@ -372,6 +379,32 @@ public class Bienvenida extends AppCompatActivity {
             }
         }
         return bConectado;
+    }
+
+    /*Obtener el ID Firebase*/
+
+    public void OtenerToken(){
+        FirebaseInstanceId.getInstance().getInstanceId()
+                .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                    @Override
+                    public void onComplete(@NonNull Task<InstanceIdResult> task) {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "getInstanceId failed", task.getException());
+                            return;
+                        }
+
+                        // Get new Instance ID token
+                        String token = task.getResult().getToken();
+                        Log.i(TAG,"cqs -------------->> El token: "+token);
+
+                        // Log and toast
+                        String msg = getString(R.string.msg_token_fmt, token);
+                        Log.d(TAG, msg);
+                        Toast.makeText(Bienvenida.this, msg, Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+
     }
 
     /*Saca usuario WebService*/
