@@ -215,8 +215,7 @@ public class Bienvenida extends AppCompatActivity {
                         public void run() {
                             try {
                                 usuarioWS(sacaUsr().toString(), sacaPss().toString());
-                                seccionWS(sacaUsr());
-                            } catch (Exception e) {
+                              } catch (Exception e) {
                                 Log.i(TAG, "cqs ------------->> Error usuarioWS va para registro: " + sacaUsuario());
                                 Intent intent = new Intent(getApplicationContext(), Registro.class);
                                 intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -418,114 +417,6 @@ public class Bienvenida extends AppCompatActivity {
                         Log.d(TAG, "cqs ----------->> usuario: " + usuario);
                         String password = jsonObject.getJSONObject("data").getJSONObject("user").get("password").toString();
                         Log.d(TAG, "cqs ----------->> password: " + password);
-
-                        if (Integer.valueOf(login) == 1) {
-                            Log.d(TAG, "cqs ----------->> login: " + "Entra");
-                            if (Integer.parseInt(sacaUsuario().toString()) == 0) {
-
-                                Log.i(TAG, "cqs ------------->> Número de usuarios: " + sacaUsuario());
-                                Intent intent = new Intent(getApplicationContext(), Registro.class);
-                                intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                startActivity(intent);
-                                finish();
-
-                            } else if (Integer.parseInt(sacaUsuario().toString()) != 0) {
-
-                                Integer activo = sacaActivo();
-
-                                if (activo == 0) {
-                                    activ();
-                                    pasaEncuesta();
-                                } else {
-
-                                    pasaEncuesta();
-                                }
-
-
-                            }
-                        } else {
-                            dialogoBaja();
-                            Log.d(TAG, "cqs ----------->> Entrada: " + "No entra");
-                        }
-                    }
-
-                } catch (Exception e) {
-//                    showProgress(false);
-                    Log.e(TAG, e.getMessage());
-                    Toast.makeText(Bienvenida.this, "Usuario y/o Contaseña no válidos", Toast.LENGTH_SHORT).show();
-                    dialogoBaja();
-                }
-            }
-
-            @Override
-            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
-//                showProgress(false);
-                try {
-                    Log.e(TAG, "cqs ----------------->> existe un error en la conexión -----> " + error.getMessage());
-                    if (responseBody != null)
-                        Log.d(TAG, "cqs ----------->> " + new String(responseBody));
-
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                }
-
-                if (statusCode != 200) {
-                    Log.e(TAG, "Existe un error en la conexión -----> " + error.getMessage());
-                    if (responseBody != null)
-                        Log.d(TAG, "pimc -----------> " + new String(responseBody));
-
-                }
-
-                Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
-
-            }
-        });
-    }
-
-
-
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public void seccionWS(final String user,double latitude, double longitude) {
-
-//        showProgress(true);
-
-        RequestParams params = new RequestParams();
-        params.put("api", "dentroSeccion");
-        params.put("usuario",user);
-        params.put("latitud", latitude);
-        params.put("longitud", longitude);
-        params.put("imei", sacaImei());
-
-        AsyncHttpClient client = new AsyncHttpClient();
-        client.setSSLSocketFactory(MySSLSocketFactory.getFixedSocketFactory());
-        //client.addHeader("Authorization", "Bearer " + usuario.getToken());
-        client.setTimeout(60000);
-
-        RequestHandle requestHandle = client.post(customURL, params, new AsyncHttpResponseHandler() {
-
-            @Override
-            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
-                String nombreStr = "";
-                Log.d(TAG, "cqs ----------->> Respuesta OK ");
-                Log.d(TAG, "cqs ----------->> ResponseBody" + new String(responseBody));
-                try {
-
-
-                    String json = new String(responseBody);
-
-                    if (json != null && !json.isEmpty()) {
-
-                        Gson gson = new Gson();
-                        JSONObject jsonObject = new JSONObject(json);
-                        Log.d(TAG, "cqs ----------->> Data: " + jsonObject.get("data"));
-
-                        String login = jsonObject.getJSONObject("response").get("code").toString();
-                        Log.d(TAG, "cqs ----------->> login: " + login);
-
-//                        String usuario = jsonObject.getJSONObject("data").getJSONObject("user").get("usuario").toString();
-//                        Log.d(TAG, "cqs ----------->> usuario: " + usuario);
-//                        String password = jsonObject.getJSONObject("data").getJSONObject("user").get("password").toString();
-//                        Log.d(TAG, "cqs ----------->> password: " + password);
 
                         if (Integer.valueOf(login) == 1) {
                             Log.d(TAG, "cqs ----------->> login: " + "Entra");
