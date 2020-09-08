@@ -1,0 +1,40 @@
+{
+  "project_info": {
+    "project_number": "1029904035735",
+    "firebase_url": "https://seguimiento-79503.firebaseio.com",
+    "project_id": "seguimiento-79503",
+    "storage_bucket": "seguimiento-79503.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1029904035735:android:34b35c14cf405f7d6e9ed2",
+        "android_client_info": {
+          "package_name": "mx.gob.cdmx.biometrico_semanal"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1029904035735-3eo12mo3s32tk2qdqfbbso7t0caao8ie.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCo8PqplMZIPmmD4QXU2JRTZEzpops6AXE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1029904035735-3eo12mo3s32tk2qdqfbbso7t0caao8ie.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

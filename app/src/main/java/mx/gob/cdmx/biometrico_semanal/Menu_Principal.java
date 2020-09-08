@@ -18,10 +18,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.Settings.Secure;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-
+import android.widget.Toast;
 
 
 public class Menu_Principal extends Activity {
@@ -286,12 +287,27 @@ public class Menu_Principal extends Activity {
 
     public void inicio(View view){
 
-
-		this.finish();
+        Intent i = new Intent(Menu_Principal.this, Bienvenida.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(i);
+        System.exit(0); // metodo que se debe implementar
 
     }
-   
 
-    
+    // EVENTO AL PULSAR EL BOTON ATRAS
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
+// Esto es lo que hace mi botón al pulsar ir a atrás
+            Toast.makeText(getApplicationContext(), "No puedo ir hacia atrás, finaliza con el Botón", Toast.LENGTH_SHORT)
+                    .show();
+
+// dialogoAbandono();
+
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
 
 }
