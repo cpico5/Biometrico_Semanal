@@ -49,18 +49,23 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import cz.msebera.android.httpclient.Header;
 
 import static mx.gob.cdmx.biometrico_semanal.Nombre.customURL;
+import static mx.gob.cdmx.biometrico_semanal.Nombre.ALCALDIA;
 
 public class Bienvenida extends AppCompatActivity {
 
     private static final String TAG = Bienvenida.class.getName();
     UsuariosSQLiteHelper3 usdbh3;
     private SQLiteDatabase db3;
+    double latitude;
+    double longitude;
 
     Nombre nom = new Nombre();
     String nombreEncuesta = nom.nombreEncuesta();
@@ -215,6 +220,7 @@ public class Bienvenida extends AppCompatActivity {
                         public void run() {
                             try {
                                 usuarioWS(sacaUsr().toString(), sacaPss().toString());
+//                                seccionWS(sacaUsr());
                             } catch (Exception e) {
                                 Log.i(TAG, "cqs ------------->> Error usuarioWS va para registro: " + sacaUsuario());
                                 Intent intent = new Intent(getApplicationContext(), Registro.class);
@@ -434,10 +440,29 @@ public class Bienvenida extends AppCompatActivity {
 
                                 if (activo == 0) {
                                     activ();
-                                    pasaEncuesta();
-                                } else {
 
-                                    pasaEncuesta();
+                                    /*
+                                    /*si el usuario el igual con 1 de pruebas va directo a MainActivity
+                                    /*si no, verifica que esté en el poligono de la alcaldia
+                                    */
+
+                                    if(user.equals("1")){
+                                        pasaEncuesta();
+                                    }else {
+                                        seccionWS(user);
+//                                    pasaEncuesta();
+                                    }
+                                } else {
+                                    /*
+                                    /*si el usuario el igual con 1 de pruebas va directo a MainActivity
+                                    /*si no, verifica que esté en el poligono de la alcaldia
+                                    */
+                                    if(user.equals("1")){
+                                        pasaEncuesta();
+                                    }else {
+                                        seccionWS(user);
+//                                    pasaEncuesta();
+                                    }
                                 }
 
 
@@ -481,6 +506,156 @@ public class Bienvenida extends AppCompatActivity {
         });
     }
 
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public void seccionWS(final String user) {
+
+//        showProgress(true);
+
+        GPSTracker gps = new GPSTracker(this);
+        latitude = gps.getLatitude();
+        longitude = gps.getLongitude();
+
+        if (latitude == 0.0) {
+            if (sacaLatitud() != null) {
+                latitude = Double.valueOf(sacaLatitud());
+            } else {
+                latitude = 0.0;
+            }
+        }
+
+        if (longitude == 0.0) {
+            if (sacaLongitud() != null) {
+                longitude = Double.valueOf(sacaLongitud());
+            } else {
+                longitude = 0.0;
+            }
+        }
+
+        String strLatitud = String.valueOf(latitude);
+        String strLongitud = String.valueOf(longitude);
+        String laAlcaldia=ALCALDIA;
+
+        if (ALCALDIA == "Álvaro Obregón") {
+            laAlcaldia = "10";
+        } else if (ALCALDIA == "Azcapotzalco") {
+            laAlcaldia = "2";
+        } else if (ALCALDIA == "Benito Juárez") {
+            laAlcaldia = "14";
+        } else if (ALCALDIA == "Coyoacán") {
+            laAlcaldia = "3";
+        } else if (ALCALDIA == "Cuajimalpa de Morelos") {
+            laAlcaldia = "4";
+        } else if (ALCALDIA == "Cuauhtémoc") {
+            laAlcaldia = "15";
+        } else if (ALCALDIA == "Gustavo A. Madero") {
+            laAlcaldia = "5";
+        } else if (ALCALDIA == "Iztacalco") {
+            laAlcaldia = "6";
+        } else if (ALCALDIA == "Iztapalapa") {
+            laAlcaldia = "7";
+        } else if (ALCALDIA == "La Magdalena Contreras") {
+            laAlcaldia = "8";
+        } else if (ALCALDIA == "Miguel Hidalgo") {
+            laAlcaldia = "16";
+        } else if (ALCALDIA == "Milpa Alta") {
+            laAlcaldia = "9";
+        } else if (ALCALDIA == "Tláhuac") {
+            laAlcaldia = "11";
+        } else if (ALCALDIA == "Tlalpan") {
+            laAlcaldia = "12";
+        } else if (ALCALDIA == "Venustiano Carranza") {
+            laAlcaldia = "17";
+        } else if (ALCALDIA == "Xochimilco") {
+            laAlcaldia = "13";
+        }
+
+        RequestParams params = new RequestParams();
+        params.put("api", "dentroSeccion");
+        params.put("usuario",user);
+        params.put("alcaldia",laAlcaldia);
+        params.put("latitud", strLatitud);
+        params.put("longitud", strLongitud);
+        params.put("imei", sacaImei());
+
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setSSLSocketFactory(MySSLSocketFactory.getFixedSocketFactory());
+        //client.addHeader("Authorization", "Bearer " + usuario.getToken());
+        client.setTimeout(60000);
+
+        RequestHandle requestHandle = client.post(customURL, params, new AsyncHttpResponseHandler() {
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                String nombreStr = "";
+                Log.d(TAG, "cqs ----------->> Respuesta OK ");
+                Log.d(TAG, "cqs ----------->> ALCALDIA: "+ALCALDIA);
+                Log.d(TAG, "cqs ----------->> ResponseBody" + new String(responseBody));
+                try {
+
+
+                    String json = new String(responseBody);
+
+                    if (json != null && !json.isEmpty()) {
+
+                        Gson gson = new Gson();
+                        JSONObject jsonObject = new JSONObject(json);
+                        Log.d(TAG, "cqs ----------->> Data: " + jsonObject.get("data"));
+
+                        String code = jsonObject.getJSONObject("response").get("code").toString();
+                        Log.d(TAG, "cqs ----------->> code alcaldia: " + code);
+
+                        String esta = jsonObject.getJSONObject("data").get("esta").toString();
+                        Log.d(TAG, "cqs ----------->> esta: " + esta);
+//                        String password = jsonObject.getJSONObject("data").getJSONObject("user").get("password").toString();
+//                        Log.d(TAG, "cqs ----------->> password: " + password);
+
+                        if (Integer.valueOf(code) == 1) {
+                            Log.d(TAG, "cqs ----------->> Entrada: " + "Entra a seccion");
+
+                            pasaEncuesta();
+
+                        } else {
+                            dialogoFueraLugar();
+                            Log.d(TAG, "cqs ----------->> Entrada: " + "No entra a seccion");
+                        }
+                    }
+
+                } catch (Exception e) {
+//                    showProgress(false);
+                    Log.e(TAG, e.getMessage());
+                    Toast.makeText(Bienvenida.this, "Usuario y/o Contaseña no válidos", Toast.LENGTH_SHORT).show();
+                    dialogoFueraLugar();
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+//                showProgress(false);
+                try {
+                    Log.e(TAG, "cqs ----------------->> existe un error en la conexión secciones -----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs ----------->> " + new String(responseBody));
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                if (statusCode != 200) {
+                    Log.e(TAG, "Existe un error en la conexión secciones-----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs ----------->> " + new String(responseBody));
+
+                }
+
+                Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
+
+            }
+        });
+    }
+
+
     public void dialogoBaja() {
         // timer.cancel();
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -504,6 +679,29 @@ public class Bienvenida extends AppCompatActivity {
         });
 
     }
+
+    public void dialogoFueraLugar() {
+        // timer.cancel();
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        Bienvenida.this.runOnUiThread(new Runnable() {
+            public void run() {
+                builder.setMessage("Ponte en contacto con tu supervisor")
+                        .setTitle("No te encuentras en la alcadia que corresponde").setCancelable(false)
+                        .setPositiveButton("Cerrar", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                                finishAffinity();
+
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+
+            }
+        });
+
+    }
+
 
     public void dialogoConexion() {
         // timer.cancel();
@@ -909,6 +1107,46 @@ public class Bienvenida extends AppCompatActivity {
 
         }
 
+    }
+
+    private String sacaLatitud() {
+        Set<String> set = new HashSet<String>();
+        String acceso = null;
+        final String F = "File dbfile";
+// Abrimos la base de datos 'DBUsuarios' en modo escritura
+        usdbh3 = new UsuariosSQLiteHelper3(this);
+        db3 = usdbh3.getReadableDatabase();
+        String selectQuery = "select latitud from ubicacion order by id desc limit 1";
+        Cursor cursor = db3.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                acceso = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+// db.close();
+
+        return acceso;
+    }
+
+    private String sacaLongitud() {
+        Set<String> set = new HashSet<String>();
+        String acceso = null;
+        final String F = "File dbfile";
+// Abrimos la base de datos 'DBUsuarios' en modo escritura
+        usdbh3 = new UsuariosSQLiteHelper3(this);
+        db3 = usdbh3.getReadableDatabase();
+        String selectQuery = "select longitud from ubicacion order by id desc limit 1";
+        Cursor cursor = db3.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                acceso = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+// db.close();
+
+        return acceso;
     }
 
     public int uploadAudios(String sourceFileUri) {
