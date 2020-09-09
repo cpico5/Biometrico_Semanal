@@ -2,6 +2,25 @@ package mx.gob.cdmx.biometrico_semanal;
 
 public class Nombre  {
 
+    /*
+    Álvaro Obregón
+    Azcapotzalco
+    Benito Juárez
+    Coyoacán
+    Cuajimalpa de Morelos
+    Cuauhtémoc
+    Gustavo A. Madero
+    Iztacalco
+    Iztapalapa
+    La Magdalena Contreras
+    Miguel Hidalgo
+    Milpa Alta
+    Tláhuac
+    Tlalpan
+    Venustiano Carranza
+    Xochimilco
+    */
+
     public static final String customURL = "https://opinion.cdmx.gob.mx/encuestas/";
     public static final String encuesta = "biometrico_semanal";
     public static final String USUARIO = "usuario";

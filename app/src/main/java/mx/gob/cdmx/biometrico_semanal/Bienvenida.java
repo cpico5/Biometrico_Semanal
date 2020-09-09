@@ -227,7 +227,6 @@ public class Bienvenida extends AppCompatActivity {
                         public void run() {
                             try {
                                 usuarioWS(sacaUsr().toString(), sacaPss().toString());
-//                                seccionWS(sacaUsr());
                             } catch (Exception e) {
                                 Log.i(TAG, "cqs ------------->> Error usuarioWS va para registro: " + sacaUsuario());
                                 Intent intent = new Intent(getApplicationContext(), Registro.class);
@@ -488,9 +487,18 @@ public class Bienvenida extends AppCompatActivity {
                                     if(user.equals("1")){
                                         pasaEncuesta();
                                     }else {
-                                        seccionWS(user);
-//                                    pasaEncuesta();
+                                        if(ALCALDIA.matches("Todas")){
+                                            pasaEncuesta();
+                                        }else{
+                                            seccionWS(user);
+                                        }
                                     }
+                                    /*ESTAS PARTE PARA PROBAR TODAS LAS ALCALDIAS*/
+//                                    if (ALCALDIA.matches("Todas")) {
+//                                        pasaEncuesta();
+//                                    } else {
+//                                        seccionWS(user);
+//                                    }
                                 } else {
                                     /*
                                     /*si el usuario el igual con 1 de pruebas va directo a MainActivity
@@ -499,9 +507,19 @@ public class Bienvenida extends AppCompatActivity {
                                     if(user.equals("1")){
                                         pasaEncuesta();
                                     }else {
-                                        seccionWS(user);
-//                                    pasaEncuesta();
+                                        if(ALCALDIA.matches("Todas")){
+                                            pasaEncuesta();
+                                        }else{
+                                            seccionWS(user);
+                                        }
                                     }
+
+                                    /*ESTAS PARTE PARA PROBAR TODAS LAS ALCALDIAS*/
+//                                    if (ALCALDIA.matches("Todas")) {
+//                                        pasaEncuesta();
+//                                    } else {
+//                                        seccionWS(user);
+//                                    }
                                 }
 
 
@@ -695,7 +713,6 @@ public class Bienvenida extends AppCompatActivity {
             }
         });
     }
-
 
     /*Saca usuario WebService*/
 
