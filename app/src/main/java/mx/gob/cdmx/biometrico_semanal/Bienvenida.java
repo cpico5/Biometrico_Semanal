@@ -1,10 +1,7 @@
 package mx.gob.cdmx.biometrico_semanal;
 
 import android.Manifest;
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.annotation.SuppressLint;
-import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -22,7 +19,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -53,24 +49,31 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 import cz.msebera.android.httpclient.Header;
 
 import static mx.gob.cdmx.biometrico_semanal.Nombre.customURL;
+import static mx.gob.cdmx.biometrico_semanal.Nombre.ALCALDIA;
 
 public class Bienvenida extends AppCompatActivity {
 
     private static final String TAG = Bienvenida.class.getName();
     UsuariosSQLiteHelper3 usdbh3;
     private SQLiteDatabase db3;
+    double latitude;
+    double longitude;
 
     Nombre nom = new Nombre();
     String nombreEncuesta = nom.nombreEncuesta();
     String upLoadServerUriBase = "https://opinion.cdmx.gob.mx/cgi-bin/php/recibeBases" + nombreEncuesta + ".php?encuesta=" + nombreEncuesta + "";
     String upLoadServerUriAudio = "https://opinion.cdmx.gob.mx/cgi-bin/php/recibeAudios" + nombreEncuesta + ".php?encuesta=" + nombreEncuesta + "";
     int serverResponseCode = 0;
+
+    String token;
 
     Calendar c = Calendar.getInstance();
 
@@ -101,6 +104,7 @@ public class Bienvenida extends AppCompatActivity {
 
     }
 
+    @SuppressLint("WrongThread")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -164,7 +168,8 @@ public class Bienvenida extends AppCompatActivity {
 
             new uploadData.UpdateBases().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, sacaImei());
             new uploadData.UpdateAudios().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-            OtenerToken();
+            Log.i(TAG,"cqs ------------>> TOKEN A PASAR: "+ObtenerToken());
+            ObtenerToken();
             NotificacionIDTokenService notificacionIDTokenService = new NotificacionIDTokenService();
             notificacionIDTokenService.onTokenRefresh();
         }
@@ -383,34 +388,40 @@ public class Bienvenida extends AppCompatActivity {
 
     /*Obtener el ID Firebase*/
 
-    public void OtenerToken(){
+    public String ObtenerToken(){
         FirebaseInstanceId.getInstance().getInstanceId()
                 .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onComplete(@NonNull Task<InstanceIdResult> task) {
+
                         if (!task.isSuccessful()) {
                             Log.w(TAG, "getInstanceId failed", task.getException());
                             return;
                         }
 
                         // Get new Instance ID token
-                        String token = task.getResult().getToken();
-                        Log.i(TAG,"cqs -------------->> El token: "+token);
+                        token = task.getResult().getToken();
+                        Log.i(TAG,"cqs -------------->> El token Bienvenida: "+ token);
+                        tokenWS(sacaUsr().toString(),sacaPss().toString(),token);
 
                         // Log and toast
                         String msg = getString(R.string.msg_token_fmt, token);
                         Log.d(TAG, msg);
                         Toast.makeText(Bienvenida.this, msg, Toast.LENGTH_SHORT).show();
+
+
                     }
                 });
 
+        return token;
 
     }
 
     /*Saca usuario WebService*/
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    public void usuarioWS(final String user, final String password) {
+    public void usuarioWS(final String user, final String password ) {
 
 //        showProgress(true);
 
@@ -467,10 +478,48 @@ public class Bienvenida extends AppCompatActivity {
 
                                 if (activo == 0) {
                                     activ();
-                                    pasaEncuesta();
-                                } else {
 
-                                    pasaEncuesta();
+                                    /*
+                                    /*si el usuario el igual con 1 de pruebas va directo a MainActivity
+                                    /*si no, verifica que esté en el poligono de la alcaldia
+                                    */
+
+                                    if(user.equals("1")){
+                                        pasaEncuesta();
+                                    }else {
+                                        if(ALCALDIA.matches("Todas")){
+                                            pasaEncuesta();
+                                        }else{
+                                            seccionWS(user);
+                                        }
+                                    }
+                                    /*ESTAS PARTE PARA PROBAR TODAS LAS ALCALDIAS*/
+//                                    if (ALCALDIA.matches("Todas")) {
+//                                        pasaEncuesta();
+//                                    } else {
+//                                        seccionWS(user);
+//                                    }
+                                } else {
+                                    /*
+                                    /*si el usuario el igual con 1 de pruebas va directo a MainActivity
+                                    /*si no, verifica que esté en el poligono de la alcaldia
+                                    */
+                                    if(user.equals("1")){
+                                        pasaEncuesta();
+                                    }else {
+                                        if(ALCALDIA.matches("Todas")){
+                                            pasaEncuesta();
+                                        }else{
+                                            seccionWS(user);
+                                        }
+                                    }
+
+                                    /*ESTAS PARTE PARA PROBAR TODAS LAS ALCALDIAS*/
+//                                    if (ALCALDIA.matches("Todas")) {
+//                                        pasaEncuesta();
+//                                    } else {
+//                                        seccionWS(user);
+//                                    }
                                 }
 
 
@@ -483,8 +532,8 @@ public class Bienvenida extends AppCompatActivity {
 
                 } catch (Exception e) {
 //                    showProgress(false);
-                    Log.e(TAG, e.getMessage());
-                    Toast.makeText(Bienvenida.this, "Usuario y/o Contaseña no válidos", Toast.LENGTH_SHORT).show();
+                    String stackTrace = Log.getStackTraceString(e);
+                    Log.i("cqs ---------->> FALLA","FALLA: "+ stackTrace);
                     dialogoBaja();
                 }
             }
@@ -509,6 +558,250 @@ public class Bienvenida extends AppCompatActivity {
                 }
 
                 Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
+                finishAffinity();
+
+            }
+        });
+    }
+
+
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public void seccionWS(final String user) {
+
+//        showProgress(true);
+
+        GPSTracker gps = new GPSTracker(this);
+        latitude = gps.getLatitude();
+        longitude = gps.getLongitude();
+
+        if (latitude == 0.0) {
+            if (sacaLatitud() != null) {
+                latitude = Double.valueOf(sacaLatitud());
+            } else {
+                latitude = 0.0;
+            }
+        }
+
+        if (longitude == 0.0) {
+            if (sacaLongitud() != null) {
+                longitude = Double.valueOf(sacaLongitud());
+            } else {
+                longitude = 0.0;
+            }
+        }
+
+        String strLatitud = String.valueOf(latitude);
+        String strLongitud = String.valueOf(longitude);
+        String laAlcaldia=ALCALDIA;
+
+        if (ALCALDIA == "Álvaro Obregón") {
+            laAlcaldia = "10";
+        } else if (ALCALDIA == "Azcapotzalco") {
+            laAlcaldia = "2";
+        } else if (ALCALDIA == "Benito Juárez") {
+            laAlcaldia = "14";
+        } else if (ALCALDIA == "Coyoacán") {
+            laAlcaldia = "3";
+        } else if (ALCALDIA == "Cuajimalpa de Morelos") {
+            laAlcaldia = "4";
+        } else if (ALCALDIA == "Cuauhtémoc") {
+            laAlcaldia = "15";
+        } else if (ALCALDIA == "Gustavo A. Madero") {
+            laAlcaldia = "5";
+        } else if (ALCALDIA == "Iztacalco") {
+            laAlcaldia = "6";
+        } else if (ALCALDIA == "Iztapalapa") {
+            laAlcaldia = "7";
+        } else if (ALCALDIA == "La Magdalena Contreras") {
+            laAlcaldia = "8";
+        } else if (ALCALDIA == "Miguel Hidalgo") {
+            laAlcaldia = "16";
+        } else if (ALCALDIA == "Milpa Alta") {
+            laAlcaldia = "9";
+        } else if (ALCALDIA == "Tláhuac") {
+            laAlcaldia = "11";
+        } else if (ALCALDIA == "Tlalpan") {
+            laAlcaldia = "12";
+        } else if (ALCALDIA == "Venustiano Carranza") {
+            laAlcaldia = "17";
+        } else if (ALCALDIA == "Xochimilco") {
+            laAlcaldia = "13";
+        }
+
+        RequestParams params = new RequestParams();
+        params.put("api", "dentroSeccion");
+        params.put("usuario",user);
+        params.put("alcaldia",laAlcaldia);
+        params.put("latitud", strLatitud);
+        params.put("longitud", strLongitud);
+        params.put("imei", sacaImei());
+
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setSSLSocketFactory(MySSLSocketFactory.getFixedSocketFactory());
+        //client.addHeader("Authorization", "Bearer " + usuario.getToken());
+        client.setTimeout(60000);
+
+        RequestHandle requestHandle = client.post(customURL, params, new AsyncHttpResponseHandler() {
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                String nombreStr = "";
+                Log.d(TAG, "cqs ----------->> Respuesta OK ");
+                Log.d(TAG, "cqs ----------->> ALCALDIA: "+ALCALDIA);
+                Log.d(TAG, "cqs ----------->> ResponseBody" + new String(responseBody));
+                try {
+
+
+                    String json = new String(responseBody);
+
+                    if (json != null && !json.isEmpty()) {
+
+                        Gson gson = new Gson();
+                        JSONObject jsonObject = new JSONObject(json);
+                        Log.d(TAG, "cqs ----------->> Data: " + jsonObject.get("data"));
+
+                        String code = jsonObject.getJSONObject("response").get("code").toString();
+                        Log.d(TAG, "cqs ----------->> code alcaldia: " + code);
+
+                        String esta = jsonObject.getJSONObject("data").get("esta").toString();
+                        Log.d(TAG, "cqs ----------->> esta: " + esta);
+//                        String password = jsonObject.getJSONObject("data").getJSONObject("user").get("password").toString();
+//                        Log.d(TAG, "cqs ----------->> password: " + password);
+
+                        if (Integer.valueOf(code) == 1) {
+                            Log.d(TAG, "cqs ----------->> Entrada: " + "Entra a seccion");
+
+                            pasaEncuesta();
+
+                        } else {
+                            dialogoFueraLugar();
+                            Log.d(TAG, "cqs ----------->> Entrada: " + "No entra a seccion");
+                        }
+                    }
+
+                } catch (Exception e) {
+//                    showProgress(false);
+                    Log.e(TAG, e.getMessage());
+                    Toast.makeText(Bienvenida.this, "Usuario y/o Contaseña no válidos", Toast.LENGTH_SHORT).show();
+                    dialogoFueraLugar();
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+//                showProgress(false);
+                try {
+                    Log.e(TAG, "cqs ----------------->> existe un error en la conexión secciones -----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs ----------->> " + new String(responseBody));
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                if (statusCode != 200) {
+                    Log.e(TAG, "Existe un error en la conexión secciones-----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs ----------->> " + new String(responseBody));
+
+                }
+
+                Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
+                finishAffinity();
+
+            }
+        });
+    }
+
+    /*Saca usuario WebService*/
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public void tokenWS(final String user, final String password,final String token_firebase ) {
+
+//        showProgress(true);
+
+        RequestParams params = new RequestParams();
+        params.put("api", "token_firebase");
+        params.put("usuario", user);
+        params.put("pass", password);
+        params.put("imei", sacaImei());
+        params.put("token_firebase", token_firebase);
+
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setSSLSocketFactory(MySSLSocketFactory.getFixedSocketFactory());
+        //client.addHeader("Authorization", "Bearer " + usuario.getToken());
+        client.setTimeout(60000);
+
+        RequestHandle requestHandle = client.post(customURL, params, new AsyncHttpResponseHandler() {
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                String nombreStr = "";
+                Log.d(TAG, "cqs ----------->> Respuesta OK ");
+                Log.d(TAG, "cqs ----------->> ResponseBody" + new String(responseBody));
+                try {
+
+
+                    String json = new String(responseBody);
+
+                    if (json != null && !json.isEmpty()) {
+
+                        Gson gson = new Gson();
+                        JSONObject jsonObject = new JSONObject(json);
+                        Log.d(TAG, "cqs ----------->> Data: " + jsonObject.get("data"));
+
+                        String login = jsonObject.getJSONObject("response").get("code").toString();
+                        Log.d(TAG, "cqs ----------->> login: " + login);
+
+                        String usuario = jsonObject.getJSONObject("data").getJSONObject("user").get("usuario").toString();
+                        Log.d(TAG, "cqs ----------->> usuario: " + usuario);
+                        String password = jsonObject.getJSONObject("data").getJSONObject("user").get("password").toString();
+                        Log.d(TAG, "cqs ----------->> password: " + password);
+                        String token_fire = jsonObject.getJSONObject("data").getJSONObject("user").get("token_firebase").toString();
+                        Log.d(TAG, "cqs ----------->> Token Firebase: " + token_fire);
+
+                        if (Integer.valueOf(login) == 1) {
+                            Log.d(TAG, "cqs ----------->> login: " + "Entra");
+                            if (Integer.parseInt(sacaUsuario().toString()) == 0) {
+
+
+                            } else if (Integer.parseInt(sacaUsuario().toString()) != 0) {
+
+                            }
+                        } else {
+
+                            Log.d(TAG, "cqs ----------->> Entrada: " + "No entra");
+                        }
+                    }
+
+                } catch (Exception e) {
+                    Log.e(TAG, e.getMessage());
+
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+//                showProgress(false);
+                try {
+                    Log.e(TAG, "cqs ----------------->> existe un error en la conexión -----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs ----------->> " + new String(responseBody));
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                if (statusCode != 200) {
+                    Log.e(TAG, "Existe un error en la conexión -----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs -----------> " + new String(responseBody));
+
+                }
+
+                Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
+                finishAffinity();
 
             }
         });
@@ -537,6 +830,29 @@ public class Bienvenida extends AppCompatActivity {
         });
 
     }
+
+    public void dialogoFueraLugar() {
+        // timer.cancel();
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        Bienvenida.this.runOnUiThread(new Runnable() {
+            public void run() {
+                builder.setMessage("Ponte en contacto con tu supervisor")
+                        .setTitle("No te encuentras en la alcadia que corresponde").setCancelable(false)
+                        .setPositiveButton("Cerrar", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                                finishAffinity();
+
+                            }
+                        });
+                AlertDialog alert = builder.create();
+                alert.show();
+
+            }
+        });
+
+    }
+
 
     public void dialogoConexion() {
         // timer.cancel();
@@ -942,6 +1258,46 @@ public class Bienvenida extends AppCompatActivity {
 
         }
 
+    }
+
+    private String sacaLatitud() {
+        Set<String> set = new HashSet<String>();
+        String acceso = null;
+        final String F = "File dbfile";
+// Abrimos la base de datos 'DBUsuarios' en modo escritura
+        usdbh3 = new UsuariosSQLiteHelper3(this);
+        db3 = usdbh3.getReadableDatabase();
+        String selectQuery = "select latitud from ubicacion order by id desc limit 1";
+        Cursor cursor = db3.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                acceso = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+// db.close();
+
+        return acceso;
+    }
+
+    private String sacaLongitud() {
+        Set<String> set = new HashSet<String>();
+        String acceso = null;
+        final String F = "File dbfile";
+// Abrimos la base de datos 'DBUsuarios' en modo escritura
+        usdbh3 = new UsuariosSQLiteHelper3(this);
+        db3 = usdbh3.getReadableDatabase();
+        String selectQuery = "select longitud from ubicacion order by id desc limit 1";
+        Cursor cursor = db3.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                acceso = cursor.getString(0);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+// db.close();
+
+        return acceso;
     }
 
     public int uploadAudios(String sourceFileUri) {

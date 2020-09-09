@@ -17,7 +17,11 @@ public class NotificacionIDTokenService extends FirebaseInstanceIdService {
 
 private void enviarTokenRegistro(String token){
 
-    Log.d(TAG,token);
+    if(token==null){
+        Log.d(TAG,"Sin token");
+    }else {
+        Log.d(TAG, token);
+    }
 }
 
 
