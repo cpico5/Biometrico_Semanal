@@ -1,6 +1,7 @@
 package mx.gob.cdmx.biometrico_semanal;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -72,6 +73,8 @@ public class Bienvenida extends AppCompatActivity {
     String upLoadServerUriAudio = "https://opinion.cdmx.gob.mx/cgi-bin/php/recibeAudios" + nombreEncuesta + ".php?encuesta=" + nombreEncuesta + "";
     int serverResponseCode = 0;
 
+    String token;
+
     Calendar c = Calendar.getInstance();
 
     SimpleDateFormat df1 = new SimpleDateFormat("yyyMMdd");
@@ -101,6 +104,7 @@ public class Bienvenida extends AppCompatActivity {
 
     }
 
+    @SuppressLint("WrongThread")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -164,7 +168,8 @@ public class Bienvenida extends AppCompatActivity {
 
             new uploadData.UpdateBases().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, sacaImei());
             new uploadData.UpdateAudios().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-            OtenerToken();
+            Log.i(TAG,"cqs ------------>> TOKEN A PASAR: "+ObtenerToken());
+            ObtenerToken();
             NotificacionIDTokenService notificacionIDTokenService = new NotificacionIDTokenService();
             notificacionIDTokenService.onTokenRefresh();
         }
@@ -384,34 +389,40 @@ public class Bienvenida extends AppCompatActivity {
 
     /*Obtener el ID Firebase*/
 
-    public void OtenerToken(){
+    public String ObtenerToken(){
         FirebaseInstanceId.getInstance().getInstanceId()
                 .addOnCompleteListener(new OnCompleteListener<InstanceIdResult>() {
+                    @RequiresApi(api = Build.VERSION_CODES.O)
                     @Override
                     public void onComplete(@NonNull Task<InstanceIdResult> task) {
+
                         if (!task.isSuccessful()) {
                             Log.w(TAG, "getInstanceId failed", task.getException());
                             return;
                         }
 
                         // Get new Instance ID token
-                        String token = task.getResult().getToken();
-                        Log.i(TAG,"cqs -------------->> El token: "+token);
+                        token = task.getResult().getToken();
+                        Log.i(TAG,"cqs -------------->> El token Bienvenida: "+ token);
+                        tokenWS(sacaUsr().toString(),sacaPss().toString(),token);
 
                         // Log and toast
                         String msg = getString(R.string.msg_token_fmt, token);
                         Log.d(TAG, msg);
                         Toast.makeText(Bienvenida.this, msg, Toast.LENGTH_SHORT).show();
+
+
                     }
                 });
 
+        return token;
 
     }
 
     /*Saca usuario WebService*/
 
     @RequiresApi(api = Build.VERSION_CODES.O)
-    public void usuarioWS(final String user, final String password) {
+    public void usuarioWS(final String user, final String password ) {
 
 //        showProgress(true);
 
@@ -503,8 +514,8 @@ public class Bienvenida extends AppCompatActivity {
 
                 } catch (Exception e) {
 //                    showProgress(false);
-                    Log.e(TAG, e.getMessage());
-                    Toast.makeText(Bienvenida.this, "Usuario y/o Contaseña no válidos", Toast.LENGTH_SHORT).show();
+                    String stackTrace = Log.getStackTraceString(e);
+                    Log.i("cqs ---------->> FALLA","FALLA: "+ stackTrace);
                     dialogoBaja();
                 }
             }
@@ -529,6 +540,7 @@ public class Bienvenida extends AppCompatActivity {
                 }
 
                 Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
+                finishAffinity();
 
             }
         });
@@ -678,11 +690,105 @@ public class Bienvenida extends AppCompatActivity {
                 }
 
                 Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
+                finishAffinity();
 
             }
         });
     }
 
+
+    /*Saca usuario WebService*/
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public void tokenWS(final String user, final String password,final String token_firebase ) {
+
+//        showProgress(true);
+
+        RequestParams params = new RequestParams();
+        params.put("api", "token_firebase");
+        params.put("usuario", user);
+        params.put("pass", password);
+        params.put("imei", sacaImei());
+        params.put("token_firebase", token_firebase);
+
+        AsyncHttpClient client = new AsyncHttpClient();
+        client.setSSLSocketFactory(MySSLSocketFactory.getFixedSocketFactory());
+        //client.addHeader("Authorization", "Bearer " + usuario.getToken());
+        client.setTimeout(60000);
+
+        RequestHandle requestHandle = client.post(customURL, params, new AsyncHttpResponseHandler() {
+
+            @Override
+            public void onSuccess(int statusCode, Header[] headers, byte[] responseBody) {
+                String nombreStr = "";
+                Log.d(TAG, "cqs ----------->> Respuesta OK ");
+                Log.d(TAG, "cqs ----------->> ResponseBody" + new String(responseBody));
+                try {
+
+
+                    String json = new String(responseBody);
+
+                    if (json != null && !json.isEmpty()) {
+
+                        Gson gson = new Gson();
+                        JSONObject jsonObject = new JSONObject(json);
+                        Log.d(TAG, "cqs ----------->> Data: " + jsonObject.get("data"));
+
+                        String login = jsonObject.getJSONObject("response").get("code").toString();
+                        Log.d(TAG, "cqs ----------->> login: " + login);
+
+                        String usuario = jsonObject.getJSONObject("data").getJSONObject("user").get("usuario").toString();
+                        Log.d(TAG, "cqs ----------->> usuario: " + usuario);
+                        String password = jsonObject.getJSONObject("data").getJSONObject("user").get("password").toString();
+                        Log.d(TAG, "cqs ----------->> password: " + password);
+                        String token_fire = jsonObject.getJSONObject("data").getJSONObject("user").get("token_firebase").toString();
+                        Log.d(TAG, "cqs ----------->> Token Firebase: " + token_fire);
+
+                        if (Integer.valueOf(login) == 1) {
+                            Log.d(TAG, "cqs ----------->> login: " + "Entra");
+                            if (Integer.parseInt(sacaUsuario().toString()) == 0) {
+
+
+                            } else if (Integer.parseInt(sacaUsuario().toString()) != 0) {
+
+                            }
+                        } else {
+
+                            Log.d(TAG, "cqs ----------->> Entrada: " + "No entra");
+                        }
+                    }
+
+                } catch (Exception e) {
+                    Log.e(TAG, e.getMessage());
+
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, byte[] responseBody, Throwable error) {
+//                showProgress(false);
+                try {
+                    Log.e(TAG, "cqs ----------------->> existe un error en la conexión -----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs ----------->> " + new String(responseBody));
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+
+                if (statusCode != 200) {
+                    Log.e(TAG, "Existe un error en la conexión -----> " + error.getMessage());
+                    if (responseBody != null)
+                        Log.d(TAG, "cqs -----------> " + new String(responseBody));
+
+                }
+
+                Toast.makeText(Bienvenida.this, "Error de conexión, intente de nuevo", Toast.LENGTH_SHORT).show();
+                finishAffinity();
+
+            }
+        });
+    }
 
     public void dialogoBaja() {
         // timer.cancel();
